@@ -11,8 +11,7 @@
         }
     ],
     "require": {
-        "aliyuncs/oss-sdk-php": "~2.0",
-        "league/flysystem": "v1.1"
+        "aliyuncs/oss-sdk-php": "~2.0"
     },
     "autoload": {
         "psr-4": {
