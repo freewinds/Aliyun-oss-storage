@@ -67,7 +67,7 @@ class AliOssAdapter extends AbstractAdapter
     protected $bucket;
 
     protected $endPoint;
-    
+
     protected $cdnDomain;
 
     protected $ssl;
@@ -79,6 +79,10 @@ class AliOssAdapter extends AbstractAdapter
         'Multipart'   => 128
     ];
 
+    //是否私有读
+    protected $isPrivRead = false;
+
+    protected $signTimeout = 3600;
 
     /**
      * AliOssAdapter constructor.
@@ -89,7 +93,10 @@ class AliOssAdapter extends AbstractAdapter
      * @param bool      $ssl
      * @param bool      $isCname
      * @param bool      $debug
+     * @param string    $cdnDomain
+     * @param bool      $privRead
      * @param null      $prefix
+     * @param int       $signTimeout
      * @param array     $options
      */
     public function __construct(
@@ -99,8 +106,10 @@ class AliOssAdapter extends AbstractAdapter
         $ssl,
         $isCname = false,
         $debug = false,
-        $cdnDomain,
+        $cdnDomain = '',
+        $privRead = false,
         $prefix = null,
+        $signTimeout = 3600,
         array $options = []
     )
     {
@@ -113,6 +122,8 @@ class AliOssAdapter extends AbstractAdapter
         $this->isCname = $isCname;
         $this->cdnDomain = $cdnDomain;
         $this->options = array_merge($this->options, $options);
+        $this->isPrivRead = $privRead;
+        $this->signTimeout = $signTimeout;
     }
 
     /**
@@ -549,7 +560,7 @@ class AliOssAdapter extends AbstractAdapter
             $this->logErr(__FUNCTION__, $e);
             return false;
         }
-        
+
         if ($acl == OssClient::OSS_ACL_TYPE_PUBLIC_READ ){
             $res['visibility'] = AdapterInterface::VISIBILITY_PUBLIC;
         }else{
@@ -565,11 +576,16 @@ class AliOssAdapter extends AbstractAdapter
      *
      * @return string
      */
-    public function getUrl( $path )
+    public function getUrl( $path)
     {
 //        if (!$this->has($path)) throw new FileNotFoundException($path.' not found');
         if (!$this->has($path)) return ""; //2021-04-16
+        $path = $this->applyPathPrefix($path);
+        if($this->isPrivRead){
+            return $this->client->signUrl($this->bucket, $path, $this->signTimeout);
+        }
         return ( $this->ssl ? 'https://' : 'http://' ) . ( $this->isCname ? ( $this->cdnDomain == '' ? $this->endPoint : $this->cdnDomain ) : $this->bucket . '.' . $this->endPoint ) . '/' . ltrim($path, '/');
+
     }
 
     /**
@@ -609,7 +625,7 @@ class AliOssAdapter extends AbstractAdapter
 
             return $result;
         }
-        
+
         $result = array_merge($result, Util::map($object, static::$resultMap), ['type' => 'file']);
 
         return $result;

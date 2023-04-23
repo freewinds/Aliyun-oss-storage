@@ -36,21 +36,24 @@ class AliOssServiceProvider extends ServiceProvider
 
             $cdnDomain = empty($config['cdnDomain']) ? '' : $config['cdnDomain'];
             $bucket    = $config['bucket'];
-            $ssl       = empty($config['ssl']) ? false : $config['ssl']; 
+            $ssl       = empty($config['ssl']) ? false : $config['ssl'];
             $isCname   = empty($config['isCName']) ? false : $config['isCName'];
             $debug     = empty($config['debug']) ? false : $config['debug'];
-
+            $privRead  = empty($config['isPrivRead']) ? false : $config['isPrivRead'];
+            $prefix    = empty($config['pathPrefix']) ? '' : $config['pathPrefix'];
+            $signTimeout = empty($config['signTimeout']) ? '' : $config['signTimeout'];
             $endPoint  = $config['endpoint']; // 默认作为外部节点
             $epInternal= $isCname?$cdnDomain:(empty($config['endpoint_internal']) ? $endPoint : $config['endpoint_internal']); // 内部节点
-            
+
             if($debug) Log::debug('OSS config:', $config);
 
             $client  = new OssClient($accessId, $accessKey, $epInternal, $isCname);
-            $adapter = new AliOssAdapter($client, $bucket, $endPoint, $ssl, $isCname, $debug, $cdnDomain);
+            $client->setUseSSL($ssl);
+            $adapter = new AliOssAdapter($client, $bucket, $endPoint, $ssl, $isCname, $debug, $cdnDomain, $privRead, $prefix, $signTimeout);
 
             //Log::debug($client);
             $filesystem =  new Filesystem($adapter);
-            
+
             $filesystem->addPlugin(new PutFile());
             $filesystem->addPlugin(new PutRemoteFile());
             //$filesystem->addPlugin(new CallBack());
